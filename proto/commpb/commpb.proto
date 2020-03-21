@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.routeguide";
+option java_outer_classname = "RouteGuideProto";
+
+service Commpb {
+    rpc AskForVote(VoteReq) returns (VoteRsp) {}
+    rpc HeartBeat(HBReq) returns (HBRsp) {}
+}
+
+message VoteReq{
+    int64 term = 1;
+    int32 id = 2;
+}
+
+
+message VoteRsp{
+    enum VtRes{
+        NO = 0;
+        YES = 1;
+    }
+    VtRes vtres = 1;
+}
+
+message HBReq{
+    int64 term = 1;
+}
+
+message HBRsp{
+    int64 term = 1;
+}
