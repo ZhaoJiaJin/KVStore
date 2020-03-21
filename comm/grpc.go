@@ -24,6 +24,7 @@ func (s *Server) AskForVote(ctx context.Context,req *pb.VoteReq) (res *pb.VoteRs
 func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error){
     //log.Infof("node %v receive heartbeat",s.id)
     s.lastack = true
+    s.leaderID = int(req.Id)
     s.changeTerm(int(req.Term))
     if s.role == Candidate{
         s.role = Follower

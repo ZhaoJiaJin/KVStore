@@ -25,6 +25,7 @@ message VoteRsp{
 
 message HBReq{
     int64 term = 1;
+    int32 id = 2;
 }
 
 message HBRsp{
