@@ -25,6 +25,9 @@ func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error)
     //log.Infof("node %v receive heartbeat",s.id)
     s.lastack = true
     s.changeTerm(int(req.Term))
+    if s.role == Candidate{
+        s.role = Follower
+    }
     return &pb.HBRsp{
         Term: int64(s.term),
     }, nil

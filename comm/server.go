@@ -2,6 +2,7 @@ package comm
 
 import(
     "sync"
+    "time"
     "google.golang.org/grpc"
     log "github.com/labstack/gommon/log"
 )
@@ -13,7 +14,7 @@ const(
     // Follower follower role
     Follower ROLE = iota
     // Candidate candidate role
-    // Candidate
+    Candidate
     // Leader leader role
     Leader
 )
@@ -67,6 +68,7 @@ func NewServer(nid int, addrs []string)*Server{
     }
     s.serve(s.addr)
     s.initConn()
+    time.Sleep(time.Second * 1)
     s.startHBCheck()
     go s.sendHB()
     return s
@@ -93,7 +95,7 @@ func (s *Server) changeTerm(newterm int){
         s.voted = false
         //if s.role == Leader{}
         s.role = Follower
-        log.Infof("node %v got bigger term, stepdown to follower",s.id)
+        log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
     }
 }
 
@@ -112,10 +114,14 @@ func (s *Server)vote(newterm int)(res bool,oldterm int){
         res = true
         s.term = newterm
         s.voted = true
+        s.role = Follower
+        log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
     }else{
         if !s.voted{
             res = true
             s.voted = true
+            s.role = Follower
+            log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
         }else{
             res = false
         }

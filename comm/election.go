@@ -37,6 +37,7 @@ func (s *Server) checkhb(dura time.Duration){
 }
 
 func (s *Server) applyLeader(){
+    s.role = Candidate
     s.incTerm()
     log.Infof("node %v apply for leader at term %v",s.id, s.term)
     nodesum := len(s.nodes)
@@ -59,6 +60,9 @@ func (s *Server) applyLeader(){
             }else{
                 log.Infof("node %v vote no",nd.id)
             }
+        }
+        if s.role != Candidate{
+            break
         }
     }
     if yesvotes > nodesum / 2{
@@ -84,7 +88,8 @@ func (s *Server) sendHB(){
                 defer cancel()
                 rsp,err := client.HeartBeat(ctx,&pb.HBReq{Term:int64(s.getTerm())})
                 if err != nil{
-                    log.Errorf("fail to send heartbeat to %v %v %v",id,nd.addr,err)
+                    id = id
+                    //log.Errorf("fail to send heartbeat to %v %v %v",id,nd.addr,err)
                 }else{
                     s.changeTerm(int(rsp.Term))
                 }
