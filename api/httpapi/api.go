@@ -17,9 +17,9 @@ func init() {
 }
 
 //Serve starts HTTP server.
-func Serve() {
+func Serve(port int) {
 	http.HandleFunc("/", handleRequest)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d",port), nil))
 }
 
 // handleRequest handles all incoming HTTP requests and dispatches them to one
