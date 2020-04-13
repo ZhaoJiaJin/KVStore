@@ -7,6 +7,8 @@ option java_outer_classname = "RouteGuideProto";
 service Commpb {
     rpc AskForVote(VoteReq) returns (VoteRsp) {}
     rpc HeartBeat(HBReq) returns (HBRsp) {}
+    rpc GetCheckPoint(Msg) returns (CP){}
+    rpc SendCheckPoint(CP) returns (Msg) {}
 }
 
 message VoteReq{
@@ -30,4 +32,13 @@ message HBReq{
 
 message HBRsp{
     int64 term = 1;
+}
+
+message Msg{
+}
+
+message CP {
+    bytes data = 1;
+    int32 status = 2;
+    int32 nodeid = 3;
 }

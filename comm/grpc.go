@@ -34,6 +34,31 @@ func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error)
     }, nil
 }
 
+// GetCheckPoint handle GetCheckpoint requests from followers
+func (s *Server) GetCheckPoint(ctx context.Context, req *pb.Msg)(*pb.CP, error){
+    data,err := s.getCheckPoint()
+    if err != nil{
+        log.Warnf("GetCheckPoint %v",err)
+        return &pb.CP{
+            Status:1,
+        },nil
+    }
+    return  &pb.CP{
+        Data:data,
+        Status:0,
+    }, nil
+}
+
+
+// SendCheckPoint handle SendCheckPoint requests from leader node
+func (s *Server) SendCheckPoint(ctx context.Context, req *pb.CP)(*pb.Msg, error){
+    err := s.recoverFromCheckPoint(req.Data,req.Nodeid)
+    if err != nil{
+        log.Warnf("SendCheckPoint:%v",err)
+    }
+    return &pb.Msg{}, nil
+}
+
 
 // serve start grpc server
 func (s *Server)serve(addr string){
@@ -50,3 +75,5 @@ func (s *Server)serve(addr string){
         }
     }()
 }
+
+

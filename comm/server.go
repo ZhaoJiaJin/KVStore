@@ -4,6 +4,7 @@ import(
     "sync"
     "time"
     "google.golang.org/grpc"
+    "errors"
     log "github.com/labstack/gommon/log"
 )
 
@@ -38,6 +39,7 @@ type Server struct{
     hbtimeout int64
     lastack bool
     nodes map[int]*Node //id:string
+    nodelock sync.RWMutex
     errorC chan error
 }
 
@@ -78,6 +80,8 @@ func (s *Server)initConn(){
     var err error
     var opts []grpc.DialOption
     opts = append(opts, grpc.WithInsecure())
+    s.nodelock.RLock()
+    defer s.nodelock.RUnlock()
     for _,nd := range s.nodes{
         nd.conn,err = grpc.Dial(nd.addr,opts...)
         if err != nil{
@@ -134,4 +138,49 @@ func (s *Server)incTerm(){
     defer s.termLock.Unlock()
     s.term ++
     s.voted = true
+}
+
+
+// AddNode add new node to cluster
+func (s *Server) AddNode(id int, addr string)(error){
+    s.nodelock.Lock()
+    defer s.nodelock.Unlock()
+
+    if _,ok := s.nodes[id];ok{
+        return errors.New("node id already exists, please delete the old node before adding it")
+    }
+    var opts []grpc.DialOption
+    opts = append(opts, grpc.WithInsecure())
+    conn,err := grpc.Dial(addr,opts...)
+    if err != nil{
+        return err
+    }
+    s.nodes[id] = &Node{
+        id:id,
+        addr:addr,
+        conn:conn,
+    }
+    return nil
+}
+
+// RmNode remove node from cluster
+func (s *Server) RmNode(id int)(error){
+    s.nodelock.Lock()
+    defer s.nodelock.Unlock()
+    n,ok := s.nodes[id]
+    if !ok{
+        return errors.New("this node does not exist")
+    }
+    n.conn.Close()
+    delete(s.nodes,id)
+    return nil
+}
+
+func (s *Server)getCheckPoint()([]byte, error){
+
+}
+
+
+func (s *Server)recoverFromCheckPoint(data []byte, orinodeID int)(error){
+
 }
