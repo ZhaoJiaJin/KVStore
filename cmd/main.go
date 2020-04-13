@@ -6,20 +6,22 @@ import (
 	//"go.etcd.io/etcd/raft/raftpb"
 	"flag"
 	"kvstore/api/httpapi"
+	"kvstore/comm"
+	"strings"
 
 	log "github.com/labstack/gommon/log"
 	//"rdoc/raft"
 )
 
 func main() {
-	//cluster := flag.String("cluster", "http://127.0.0.1:9021", "comma separated cluster peers")
-	//id := flag.Int("id", 1, "node ID")
+	cluster := flag.String("cluster", "http://127.0.0.1:9021", "comma separated cluster peers")
+	id := flag.Int("id", 1, "node ID")
 	dbport := flag.Int("port", 9121, "database server port")
 	//join := flag.Bool("join", false, "join an existing cluster")
 	flag.Parse()
 
 	log.Infof("local port:%v", *dbport)
-	//comm.NewServer(*id, strings.Split(*cluster, ","))
+	comm.NewServer(*id, strings.Split(*cluster, ","))
 	httpapi.Serve()
 	select {}
 	/*proposeC := make(chan string)

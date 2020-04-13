@@ -6,6 +6,7 @@ import(
     log "github.com/labstack/gommon/log"
     "net"
     "context"
+    "fmt"
 )
 
 // AskForVote implements CommpbServer interface, process vote request
@@ -37,6 +38,7 @@ func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error)
 
 // serve start grpc server
 func (s *Server)serve(addr string){
+    fmt.Printf(addr)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
