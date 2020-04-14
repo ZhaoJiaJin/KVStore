@@ -52,7 +52,13 @@ func (s *Server) applyLeader(){
         ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
         defer cancel()
 
-        rsp,err := client.AskForVote(ctx, &pb.VoteReq{Term:int64(s.getTerm()), Id:int64(s.id)})
+        lastLogTerm,lastLogID := s.dblog.GetLastCommit()
+        rsp,err := client.AskForVote(ctx, &pb.VoteReq{
+            Term:int64(s.getTerm()), 
+            Id:int64(s.id),
+            LastLogTerm:lastLogTerm,
+            LastLogId:lastLogID,
+        })
         if err != nil{
             log.Errorf("fail to AskForVote:%v %v %v", id, nd.addr, err)
         }else{

@@ -17,6 +17,8 @@ service Commpb {
 message VoteReq{
     int64 term = 1;
     int64 id = 2;
+    int64 last_log_term = 3;
+    int64 last_log_id = 4;
 }
 
 

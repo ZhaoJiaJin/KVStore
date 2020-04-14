@@ -11,7 +11,7 @@ import(
 // AskForVote implements CommpbServer interface, process vote request
 func (s *Server) AskForVote(ctx context.Context,req *pb.VoteReq) (res *pb.VoteRsp,err error){
     res = &pb.VoteRsp{}
-    voteYes,_ := s.vote(req.Term)
+    voteYes,_ := s.vote(req)
     if voteYes{
        res.Vtres = pb.VoteRsp_YES
     }else{
@@ -24,7 +24,7 @@ func (s *Server) AskForVote(ctx context.Context,req *pb.VoteReq) (res *pb.VoteRs
 func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error){
     //log.Infof("node %v receive heartbeat",s.id)
     s.lastack = true
-    s.leaderID = req.Id
+    s.changeLeaderID(req.Id)
     s.changeTerm(req.Term)
     if s.role == Candidate{
         s.role = Follower

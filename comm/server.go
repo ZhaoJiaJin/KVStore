@@ -82,6 +82,7 @@ func NewServer(nid int64, addrs []string, db logging.DB, datadir string)*Server{
         nodes:make(map[int64]*Node),
         errorC: make(chan error,1),
         dblog:dblog,
+        leaderID:-1,
     }
     for i,ad := range addrs{
         s.nodes[int64(i)] = &Node{id:int64(i),addr:ad}
@@ -127,23 +128,32 @@ func (s *Server)getTerm()int64{
     return s.term
 }
 
-func (s *Server)vote(newterm int64)(res bool,oldterm int64){
+func (s *Server)vote(req *pb.VoteReq)(res bool,oldterm int64){
     s.termLock.Lock()
     defer s.termLock.Unlock()
-
+    lastterm,lastid := s.dblog.GetLastCommit()
     oldterm = s.term
-    if newterm > oldterm{
-        res = true
-        s.term = newterm
-        s.voted = true
+    if req.Term > oldterm{
+        s.term = req.Term
+        s.voted = false
         s.role = Follower
-        log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
-    }else{
-        if !s.voted{
+        if (req.LastLogTerm > lastterm) || (req.LastLogTerm == lastterm && req.LastLogId >= lastid){
             res = true
             s.voted = true
-            s.role = Follower
             log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
+        }else{
+            res = false
+        }
+    }else{
+        if !s.voted{
+            if (req.LastLogTerm > lastterm) || (req.LastLogTerm == lastterm && req.LastLogId >= lastid){
+                res = true
+                s.voted = true
+                s.role = Follower
+                log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
+            }else{
+                res = false
+            }
         }else{
             res = false
         }
@@ -261,7 +271,7 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
         }
         //Send commit to all the nodes
         //prepare the commit
-        success := 0
+        successcnt := 0
         for _,nd := range s.nodes{
             log.Infof("send the commit to node %v",nd.id)
             client := pb.NewCommpbClient(nd.conn)
@@ -273,14 +283,21 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
                 break
             }
             log.Infof("node %v is ready to commit",nd.id)
-            success ++
+            successcnt ++
             cancel()
         }
 
+        success := false
+        if successcnt > len(s.nodes)/2{
+            success = true
+            log.Info("commit reaches majority nodes, will confirm the commit")
+        }else{
+            log.Info("commit did not reach majority nodes, will cancel the commit")
+        }
         for _,nd := range s.nodes{
             client := pb.NewCommpbClient(nd.conn)
             ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
-            if success == len(s.nodes){
+            if success{
                 //confirm   
                 log.Infof("sending confirm message to node %v",nd.id)
                 _,err = client.Confirm(ctx,commit)
@@ -290,9 +307,6 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
                 _,err = client.Cancel(ctx,commit)
             }
             cancel()
-        }
-        if success != len(s.nodes){
-            return errors.New("some node is unreachable, this commit is discarded")
         }
         // nodes should compare its last term and log id before commit
         return nil
@@ -351,4 +365,12 @@ func (s *Server)confirm(commit *pb.Commit)(error){
 func (s *Server)cancel(commit *pb.Commit)(error){
     s.curcommit = nil
     return nil
+}
+
+func (s *Server)changeLeaderID(newlid int64){
+    if newlid != s.leaderID{
+        s.leaderID = newlid
+        err := s.ProposeEmpty()
+        log.Errorf("changeLeaderID:%v",err)
+    }
 }
