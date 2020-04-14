@@ -52,7 +52,7 @@ func (s *Server) applyLeader(){
         ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
         defer cancel()
 
-        rsp,err := client.AskForVote(ctx, &pb.VoteReq{Term:int64(s.getTerm()), Id:int32(s.id)})
+        rsp,err := client.AskForVote(ctx, &pb.VoteReq{Term:int64(s.getTerm()), Id:int64(s.id)})
         if err != nil{
             log.Errorf("fail to AskForVote:%v %v %v", id, nd.addr, err)
         }else{
@@ -89,7 +89,7 @@ func (s *Server) sendHB(){
                 client := pb.NewCommpbClient(nd.conn)
                 ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
                 defer cancel()
-                rsp,err := client.HeartBeat(ctx,&pb.HBReq{Term:int64(s.getTerm()),Id:int32(s.id)})
+                rsp,err := client.HeartBeat(ctx,&pb.HBReq{Term:int64(s.getTerm()),Id:int64(s.id)})
                 if err != nil{
                     id = id
                     //log.Errorf("fail to send heartbeat to %v %v %v",id,nd.addr,err)

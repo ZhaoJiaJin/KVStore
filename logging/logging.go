@@ -11,7 +11,7 @@ import(
 
 const(
     LOGSIZE = 100
-    DATSIZE = 2048
+    DATSIZE = 1024
 )
 
 type DB interface{
@@ -70,23 +70,23 @@ func NewDBLogStore(db DB, dir string)(l *LogStore,err error){
     log.Info("init commits array")
     l.commits = (*[LOGSIZE]Log)(unsafe.Pointer(&(l.mmap)[0]))
 
-    log.Info("init idx")
+    /*log.Info("init idx")
     for l.idx = 0; l.idx < LOGSIZE; l.idx++{
         if (*(l.commits))[l.idx].Used == false{
             break
         }
-    }
+    }*/
 
     //db recovery
     log.Info("recover from log")
-    err = l.recover()
+    err = l.recoverdb()
     if err != nil{
         return l, err
     }
     return l,nil
 }
 
-func (l *LogStore) recover()(error){
+func (l *LogStore) recoverdb()(error){
     // recover checkpoint
     cpdata, err := ioutil.ReadFile(l.cpF)
     if err == nil{
@@ -98,8 +98,12 @@ func (l *LogStore) recover()(error){
         log.Warnf("recover from checkpoint:%v",err)
     }
     // replay all the commits
-    for i:=0; i < l.idx; i ++{
-        cmt := l.commits[i]
+    //for i:=0; i < l.idx; i ++{
+    for l.idx = 0; l.idx < LOGSIZE; l.idx++{
+        if (*(l.commits))[l.idx].Used == false{
+            break
+        }
+        cmt := l.commits[l.idx]
         err := l.db.Apply(cmt.Data[:cmt.DataLen])
         if err != nil{
             log.Warnf("recover: replay log:%v",err)
@@ -157,4 +161,25 @@ func (l *LogStore)GetLastCommit()(int64,int64){
     }
     cmt := l.commits[lastidx]
     return cmt.Term, cmt.ID
+}
+
+func (l *LogStore)Marshal()([]byte,error){
+    cpdata, err := ioutil.ReadFile(l.cpF)
+    if err != nil{
+        return cpdata,err
+    }
+    res := make([]byte,0,len(l.mmap)+len(cpdata))
+    res = append(res,l.mmap...)
+    res = append(res,cpdata...)
+    return res,nil
+}
+
+func (l *LogStore)Unmarshal(data []byte)(error){
+    logs := data[:len(l.mmap)]
+    copy(l.mmap, logs)
+    err := ioutil.WriteFile(l.cpF,data[len(l.mmap):],0644)
+    if err != nil{
+        return err
+    }
+    return l.recoverdb()
 }

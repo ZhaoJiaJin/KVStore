@@ -6,6 +6,7 @@ import(
     "google.golang.org/grpc"
     "errors"
     log "github.com/labstack/gommon/log"
+    "kvstore/logging"
 )
 
 //ROLE role of a node
@@ -41,6 +42,8 @@ type Server struct{
     nodes map[int]*Node //id:string
     nodelock sync.RWMutex
     errorC chan error
+    dblog *logging.LogStore
+    applylock sync.Mutex
 }
 
 // Node represent a node
@@ -51,9 +54,13 @@ type Node struct{
 }
 
 //NewServer return a server
-func NewServer(nid int, addrs []string)*Server{
+func NewServer(nid int, addrs []string, db logging.DB, datadir string)*Server{
     if nid > len(addrs){
         log.Fatalf("id should be smaller than cluster addresses")
+    }
+    dblog,err := logging.NewDBLogStore(db, datadir)
+    if err != nil{
+        log.Fatal("NewServer, create NewDBLogStore failed:%v",err)
     }
     s := &Server{
         lastack:false,
@@ -64,6 +71,7 @@ func NewServer(nid int, addrs []string)*Server{
         role:Follower,
         nodes:make(map[int]*Node),
         errorC: make(chan error,1),
+        dblog:dblog,
     }
     for i,ad := range addrs{
         s.nodes[i] = &Node{id:i,addr:ad}
@@ -182,5 +190,21 @@ func (s *Server)getCheckPoint()([]byte, error){
 
 
 func (s *Server)recoverFromCheckPoint(data []byte, orinodeID int)(error){
+
+}
+
+//Propose propose a commit to the cluster
+func (s *Server)Propose(data []byte)(error){
+    if s.role != Leader{
+        //not leader, need to propose to leader
+    }else{
+        //leader
+        s.applylock.Lock()
+        //Get last log id and term from logging module
+        s.applylock.Unlock()
+        //Send commit to all the nodes
+        // nodes should compare its last term and log id before commit
+    }
+
 
 }

@@ -51,7 +51,7 @@ func (VoteRsp_VtRes) EnumDescriptor() ([]byte, []int) {
 
 type VoteReq struct {
 	Term                 int64    `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
-	Id                   int32    `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
+	Id                   int64    `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -89,7 +89,7 @@ func (m *VoteReq) GetTerm() int64 {
 	return 0
 }
 
-func (m *VoteReq) GetId() int32 {
+func (m *VoteReq) GetId() int64 {
 	if m != nil {
 		return m.Id
 	}
@@ -137,7 +137,7 @@ func (m *VoteRsp) GetVtres() VoteRsp_VtRes {
 
 type HBReq struct {
 	Term                 int64    `protobuf:"varint,1,opt,name=term,proto3" json:"term,omitempty"`
-	Id                   int32    `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
+	Id                   int64    `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -175,7 +175,7 @@ func (m *HBReq) GetTerm() int64 {
 	return 0
 }
 
-func (m *HBReq) GetId() int32 {
+func (m *HBReq) GetId() int64 {
 	if m != nil {
 		return m.Id
 	}
@@ -254,8 +254,8 @@ var xxx_messageInfo_Msg proto.InternalMessageInfo
 
 type CP struct {
 	Data                 []byte   `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	Status               int32    `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
-	Nodeid               int32    `protobuf:"varint,3,opt,name=nodeid,proto3" json:"nodeid,omitempty"`
+	Status               int64    `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
+	Nodeid               int64    `protobuf:"varint,3,opt,name=nodeid,proto3" json:"nodeid,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -293,16 +293,87 @@ func (m *CP) GetData() []byte {
 	return nil
 }
 
-func (m *CP) GetStatus() int32 {
+func (m *CP) GetStatus() int64 {
 	if m != nil {
 		return m.Status
 	}
 	return 0
 }
 
-func (m *CP) GetNodeid() int32 {
+func (m *CP) GetNodeid() int64 {
 	if m != nil {
 		return m.Nodeid
+	}
+	return 0
+}
+
+type Commit struct {
+	Data                 []byte   `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Term                 int64    `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	Id                   int64    `protobuf:"varint,3,opt,name=id,proto3" json:"id,omitempty"`
+	LastTerm             int64    `protobuf:"varint,4,opt,name=last_term,json=lastTerm,proto3" json:"last_term,omitempty"`
+	LastId               int64    `protobuf:"varint,5,opt,name=last_id,json=lastId,proto3" json:"last_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Commit) Reset()         { *m = Commit{} }
+func (m *Commit) String() string { return proto.CompactTextString(m) }
+func (*Commit) ProtoMessage()    {}
+func (*Commit) Descriptor() ([]byte, []int) {
+	return fileDescriptor_d2eb5c7490bed74a, []int{6}
+}
+
+func (m *Commit) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Commit.Unmarshal(m, b)
+}
+func (m *Commit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Commit.Marshal(b, m, deterministic)
+}
+func (m *Commit) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Commit.Merge(m, src)
+}
+func (m *Commit) XXX_Size() int {
+	return xxx_messageInfo_Commit.Size(m)
+}
+func (m *Commit) XXX_DiscardUnknown() {
+	xxx_messageInfo_Commit.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Commit proto.InternalMessageInfo
+
+func (m *Commit) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+func (m *Commit) GetTerm() int64 {
+	if m != nil {
+		return m.Term
+	}
+	return 0
+}
+
+func (m *Commit) GetId() int64 {
+	if m != nil {
+		return m.Id
+	}
+	return 0
+}
+
+func (m *Commit) GetLastTerm() int64 {
+	if m != nil {
+		return m.LastTerm
+	}
+	return 0
+}
+
+func (m *Commit) GetLastId() int64 {
+	if m != nil {
+		return m.LastId
 	}
 	return 0
 }
@@ -315,6 +386,7 @@ func init() {
 	proto.RegisterType((*HBRsp)(nil), "HBRsp")
 	proto.RegisterType((*Msg)(nil), "Msg")
 	proto.RegisterType((*CP)(nil), "CP")
+	proto.RegisterType((*Commit)(nil), "Commit")
 }
 
 func init() {
@@ -322,28 +394,32 @@ func init() {
 }
 
 var fileDescriptor_d2eb5c7490bed74a = []byte{
-	// 330 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x91, 0xc1, 0x6a, 0xe3, 0x30,
-	0x10, 0x86, 0x63, 0x3b, 0x76, 0xb2, 0x43, 0xd6, 0x1b, 0x74, 0x58, 0x8c, 0xb3, 0x0b, 0x41, 0xf4,
-	0x10, 0x28, 0x15, 0x25, 0x7d, 0x82, 0xda, 0xb4, 0x49, 0x0f, 0x69, 0x8d, 0x02, 0x81, 0x1e, 0x9d,
-	0x68, 0x70, 0x4d, 0xea, 0xc8, 0x95, 0x94, 0xd2, 0x47, 0xe8, 0x63, 0x17, 0x29, 0x2e, 0xf4, 0xd0,
-	0x43, 0x4f, 0xfa, 0x67, 0xfe, 0x4f, 0x12, 0xff, 0x0c, 0x8c, 0x76, 0xb2, 0x69, 0xda, 0x2d, 0x6b,
-	0x95, 0x34, 0x92, 0x5e, 0xc0, 0x60, 0x23, 0x0d, 0x72, 0x7c, 0x21, 0x04, 0xfa, 0x06, 0x55, 0x93,
-	0x78, 0x53, 0x6f, 0x16, 0x70, 0xa7, 0x49, 0x0c, 0x7e, 0x2d, 0x12, 0x7f, 0xea, 0xcd, 0x42, 0xee,
-	0xd7, 0x82, 0xde, 0x75, 0xb8, 0x6e, 0xc9, 0x19, 0x84, 0xaf, 0x46, 0xa1, 0x76, 0x7c, 0x3c, 0x8f,
-	0x59, 0x67, 0xb0, 0x8d, 0xe1, 0xa8, 0xf9, 0xc9, 0xa4, 0x09, 0x84, 0xae, 0x26, 0x11, 0xf8, 0xf7,
-	0x0f, 0xe3, 0x1e, 0x19, 0x40, 0xf0, 0x78, 0xb3, 0x1e, 0x7b, 0xf4, 0x1c, 0xc2, 0x65, 0xf6, 0xd3,
-	0x7f, 0x27, 0x0e, 0xd6, 0xed, 0x77, 0x30, 0x0d, 0x21, 0x58, 0xe9, 0x8a, 0x2e, 0xc1, 0xcf, 0x0b,
-	0x0b, 0x88, 0xd2, 0x94, 0x0e, 0x18, 0x71, 0xa7, 0xc9, 0x5f, 0x88, 0xb4, 0x29, 0xcd, 0x51, 0x77,
-	0x2f, 0x76, 0x95, 0xed, 0x1f, 0xa4, 0xc0, 0x5a, 0x24, 0xc1, 0xa9, 0x7f, 0xaa, 0xe6, 0xef, 0x1e,
-	0x44, 0xb9, 0x9b, 0x12, 0xa1, 0x00, 0xd7, 0x7a, 0x7f, 0x2b, 0x95, 0x4d, 0x47, 0x86, 0xac, 0x1b,
-	0x56, 0x3a, 0xfc, 0x8c, 0x4b, 0x7b, 0xe4, 0x3f, 0xfc, 0x5a, 0x62, 0xa9, 0x4c, 0x86, 0xa5, 0x21,
-	0x11, 0x73, 0xa9, 0x52, 0x77, 0x3a, 0xfb, 0x1f, 0xfc, 0x5e, 0xa0, 0xc9, 0x9f, 0x70, 0xb7, 0x2f,
-	0x64, 0x7d, 0x30, 0xa4, 0xcf, 0x56, 0xba, 0x4a, 0x03, 0x96, 0x17, 0xee, 0x72, 0xbc, 0xc6, 0x83,
-	0xf8, 0x62, 0x5b, 0x23, 0x75, 0x0c, 0xed, 0x65, 0x97, 0x30, 0xa9, 0x25, 0xab, 0x54, 0xbb, 0x63,
-	0xf8, 0x56, 0x36, 0xed, 0x33, 0x6a, 0xa6, 0xe4, 0xd1, 0x60, 0x75, 0xac, 0x05, 0x66, 0x7f, 0xb8,
-	0xd5, 0x0b, 0xab, 0x0b, 0xbb, 0xcf, 0xc2, 0xdb, 0x46, 0x6e, 0xb1, 0x57, 0x1f, 0x01, 0x00, 0x00,
-	0xff, 0xff, 0x87, 0xf3, 0xe0, 0x4c, 0xe8, 0x01, 0x00, 0x00,
+	// 399 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0xd1, 0x6e, 0xd3, 0x30,
+	0x14, 0x86, 0x9b, 0xa4, 0x49, 0xba, 0xa3, 0x52, 0x26, 0x5f, 0x40, 0x94, 0x82, 0x40, 0x16, 0x17,
+	0x48, 0x08, 0x0b, 0x8d, 0x27, 0x20, 0x11, 0xac, 0x93, 0x18, 0x44, 0xd9, 0x34, 0x89, 0x2b, 0xe4,
+	0xd6, 0x87, 0x60, 0x6d, 0x89, 0x8d, 0xed, 0x4e, 0x3c, 0x1f, 0x4f, 0x86, 0xec, 0xa4, 0x57, 0xdd,
+	0xc5, 0xae, 0x72, 0xfe, 0xff, 0xff, 0xe4, 0x73, 0x72, 0x6c, 0x58, 0xee, 0x54, 0xdf, 0xeb, 0x2d,
+	0xd3, 0x46, 0x39, 0x45, 0xdf, 0x43, 0x7e, 0xa3, 0x1c, 0xb6, 0xf8, 0x87, 0x10, 0x98, 0x3b, 0x34,
+	0x7d, 0x11, 0xbd, 0x8e, 0xde, 0x26, 0x6d, 0xa8, 0xc9, 0x0a, 0x62, 0x29, 0x8a, 0x38, 0x38, 0xb1,
+	0x14, 0xf4, 0x62, 0xc2, 0xad, 0x26, 0x6f, 0x20, 0xbd, 0x77, 0x06, 0x6d, 0xe0, 0x57, 0x67, 0x2b,
+	0x36, 0x05, 0xec, 0xc6, 0xb5, 0x68, 0xdb, 0x31, 0xa4, 0x05, 0xa4, 0x41, 0x93, 0x0c, 0xe2, 0x6f,
+	0xdf, 0x4f, 0x67, 0x24, 0x87, 0xe4, 0xc7, 0xe7, 0xab, 0xd3, 0x88, 0xbe, 0x83, 0x74, 0x53, 0x3d,
+	0xb6, 0xef, 0x3a, 0xc0, 0x56, 0x3f, 0x04, 0xd3, 0x14, 0x92, 0x4b, 0xdb, 0xd1, 0x0d, 0xc4, 0x75,
+	0xe3, 0x01, 0xc1, 0x1d, 0x0f, 0xc0, 0xb2, 0x0d, 0x35, 0x79, 0x06, 0x99, 0x75, 0xdc, 0xed, 0xed,
+	0x74, 0xe2, 0xa4, 0xbc, 0x3f, 0x28, 0x81, 0x52, 0x14, 0xc9, 0xe8, 0x8f, 0x8a, 0xde, 0x43, 0x56,
+	0xab, 0xbe, 0x97, 0xee, 0xc1, 0xd3, 0x0e, 0x23, 0xc4, 0x47, 0xf3, 0x26, 0x87, 0x79, 0xc9, 0x1a,
+	0x4e, 0xee, 0xb8, 0x75, 0x3f, 0x03, 0x38, 0x0f, 0xf6, 0xc2, 0x1b, 0xd7, 0x1e, 0x7e, 0x0e, 0x79,
+	0x08, 0xa5, 0x28, 0xd2, 0xb1, 0xaf, 0x97, 0x17, 0xe2, 0xec, 0x5f, 0x34, 0x36, 0xd6, 0x5b, 0x42,
+	0x01, 0x3e, 0xd9, 0xdb, 0x2f, 0xca, 0xf8, 0xad, 0x92, 0x05, 0x9b, 0x2e, 0xa9, 0x5c, 0x1c, 0xd6,
+	0x4c, 0x67, 0xe4, 0x25, 0x9c, 0x6c, 0x90, 0x1b, 0x57, 0x21, 0x77, 0x24, 0x63, 0x61, 0x9b, 0x65,
+	0xf8, 0x86, 0xf8, 0x05, 0x3c, 0x39, 0x47, 0x57, 0xff, 0xc6, 0xdd, 0x6d, 0xa3, 0xe4, 0xe0, 0xc8,
+	0x9c, 0x5d, 0xda, 0xae, 0x4c, 0x58, 0xdd, 0xd0, 0x19, 0x29, 0x21, 0x6f, 0x0c, 0x6a, 0x6e, 0x90,
+	0xe4, 0x6c, 0xfc, 0xdb, 0x32, 0x00, 0x63, 0x56, 0xab, 0xe1, 0x97, 0x34, 0xfd, 0x71, 0xf6, 0x0a,
+	0x96, 0x57, 0x38, 0x88, 0x6b, 0xf5, 0x15, 0xb9, 0x40, 0x73, 0x04, 0x54, 0x1f, 0x60, 0x2d, 0x15,
+	0xeb, 0x8c, 0xde, 0x31, 0xfc, 0xcb, 0x7b, 0x7d, 0x87, 0x96, 0x19, 0xb5, 0x77, 0xd8, 0xed, 0xa5,
+	0xc0, 0xea, 0x69, 0xeb, 0xeb, 0x73, 0x5f, 0x37, 0xfe, 0x05, 0x36, 0xd1, 0x36, 0x0b, 0x4f, 0xf1,
+	0xe3, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0x46, 0x30, 0xdf, 0x65, 0x9a, 0x02, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -361,7 +437,9 @@ type CommpbClient interface {
 	AskForVote(ctx context.Context, in *VoteReq, opts ...grpc.CallOption) (*VoteRsp, error)
 	HeartBeat(ctx context.Context, in *HBReq, opts ...grpc.CallOption) (*HBRsp, error)
 	GetCheckPoint(ctx context.Context, in *Msg, opts ...grpc.CallOption) (*CP, error)
-	SendCheckPoint(ctx context.Context, in *CP, opts ...grpc.CallOption) (*Msg, error)
+	Prepare(ctx context.Context, in *Commit, opts ...grpc.CallOption) (*Msg, error)
+	Confirm(ctx context.Context, in *Commit, opts ...grpc.CallOption) (*Msg, error)
+	SendToLeader(ctx context.Context, in *Commit, opts ...grpc.CallOption) (*Msg, error)
 }
 
 type commpbClient struct {
@@ -399,9 +477,27 @@ func (c *commpbClient) GetCheckPoint(ctx context.Context, in *Msg, opts ...grpc.
 	return out, nil
 }
 
-func (c *commpbClient) SendCheckPoint(ctx context.Context, in *CP, opts ...grpc.CallOption) (*Msg, error) {
+func (c *commpbClient) Prepare(ctx context.Context, in *Commit, opts ...grpc.CallOption) (*Msg, error) {
 	out := new(Msg)
-	err := c.cc.Invoke(ctx, "/Commpb/SendCheckPoint", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Commpb/Prepare", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *commpbClient) Confirm(ctx context.Context, in *Commit, opts ...grpc.CallOption) (*Msg, error) {
+	out := new(Msg)
+	err := c.cc.Invoke(ctx, "/Commpb/Confirm", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *commpbClient) SendToLeader(ctx context.Context, in *Commit, opts ...grpc.CallOption) (*Msg, error) {
+	out := new(Msg)
+	err := c.cc.Invoke(ctx, "/Commpb/SendToLeader", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +509,9 @@ type CommpbServer interface {
 	AskForVote(context.Context, *VoteReq) (*VoteRsp, error)
 	HeartBeat(context.Context, *HBReq) (*HBRsp, error)
 	GetCheckPoint(context.Context, *Msg) (*CP, error)
-	SendCheckPoint(context.Context, *CP) (*Msg, error)
+	Prepare(context.Context, *Commit) (*Msg, error)
+	Confirm(context.Context, *Commit) (*Msg, error)
+	SendToLeader(context.Context, *Commit) (*Msg, error)
 }
 
 // UnimplementedCommpbServer can be embedded to have forward compatible implementations.
@@ -429,8 +527,14 @@ func (*UnimplementedCommpbServer) HeartBeat(ctx context.Context, req *HBReq) (*H
 func (*UnimplementedCommpbServer) GetCheckPoint(ctx context.Context, req *Msg) (*CP, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCheckPoint not implemented")
 }
-func (*UnimplementedCommpbServer) SendCheckPoint(ctx context.Context, req *CP) (*Msg, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendCheckPoint not implemented")
+func (*UnimplementedCommpbServer) Prepare(ctx context.Context, req *Commit) (*Msg, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Prepare not implemented")
+}
+func (*UnimplementedCommpbServer) Confirm(ctx context.Context, req *Commit) (*Msg, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Confirm not implemented")
+}
+func (*UnimplementedCommpbServer) SendToLeader(ctx context.Context, req *Commit) (*Msg, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendToLeader not implemented")
 }
 
 func RegisterCommpbServer(s *grpc.Server, srv CommpbServer) {
@@ -491,20 +595,56 @@ func _Commpb_GetCheckPoint_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Commpb_SendCheckPoint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CP)
+func _Commpb_Prepare_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Commit)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CommpbServer).SendCheckPoint(ctx, in)
+		return srv.(CommpbServer).Prepare(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Commpb/SendCheckPoint",
+		FullMethod: "/Commpb/Prepare",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CommpbServer).SendCheckPoint(ctx, req.(*CP))
+		return srv.(CommpbServer).Prepare(ctx, req.(*Commit))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Commpb_Confirm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Commit)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommpbServer).Confirm(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Commpb/Confirm",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommpbServer).Confirm(ctx, req.(*Commit))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Commpb_SendToLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Commit)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommpbServer).SendToLeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Commpb/SendToLeader",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommpbServer).SendToLeader(ctx, req.(*Commit))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -526,8 +666,16 @@ var _Commpb_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Commpb_GetCheckPoint_Handler,
 		},
 		{
-			MethodName: "SendCheckPoint",
-			Handler:    _Commpb_SendCheckPoint_Handler,
+			MethodName: "Prepare",
+			Handler:    _Commpb_Prepare_Handler,
+		},
+		{
+			MethodName: "Confirm",
+			Handler:    _Commpb_Confirm_Handler,
+		},
+		{
+			MethodName: "SendToLeader",
+			Handler:    _Commpb_SendToLeader_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

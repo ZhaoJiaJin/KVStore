@@ -50,15 +50,19 @@ func (s *Server) GetCheckPoint(ctx context.Context, req *pb.Msg)(*pb.CP, error){
 }
 
 
-// SendCheckPoint handle SendCheckPoint requests from leader node
-func (s *Server) SendCheckPoint(ctx context.Context, req *pb.CP)(*pb.Msg, error){
-    err := s.recoverFromCheckPoint(req.Data,req.Nodeid)
-    if err != nil{
-        log.Warnf("SendCheckPoint:%v",err)
-    }
-    return &pb.Msg{}, nil
+// Prepare handle a prepare commit message from leader
+func (s *Server) Prepare(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
 }
 
+
+// Confirm handle a confirm commit message from leader
+func (s *Server) Confirm(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+}
+
+// SendToLeader handle a commit send from a follower to leader
+func (s *Server) SendToLeader(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+
+}
 
 // serve start grpc server
 func (s *Server)serve(addr string){
