@@ -196,6 +196,7 @@ func (s *Server)getCheckPoint()([]byte, error){
 //TODO: propose node add/del
 func (s *Server)Propose(data []byte)(err error){
     if s.role != Leader{
+        log.Infof("node %v is not the leader, pass the commit the leader node %v",s.id,s.leaderID)
         //not leader, need to propose to leader
         commit := &pb.Commit{
             Data:data,
@@ -209,6 +210,7 @@ func (s *Server)Propose(data []byte)(err error){
         }
     }else{
         //leader
+        log.Infof("node %v is the leader, process the commit",s.id)
         s.applylock.Lock()
         //Get last log id and term from logging module
         lastterm, lastid := s.dblog.GetLastCommit()
@@ -228,13 +230,16 @@ func (s *Server)Propose(data []byte)(err error){
         //prepare the commit
         success := 0
         for _,nd := range s.nodes{
+            log.Infof("send the commit to node %v",nd.id)
             client := pb.NewCommpbClient(nd.conn)
             ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
             _,err = client.Prepare(ctx,commit)
             if err != nil{
+                log.Infof("node %v is not ready to commit, begin to cancel this commit",nd.id)
                 cancel()
                 break
             }
+            log.Infof("node %v is ready to commit",nd.id)
             success ++
             cancel()
         }
@@ -244,9 +249,11 @@ func (s *Server)Propose(data []byte)(err error){
             ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
             if success == len(s.nodes){
                 //confirm   
+                log.Infof("sending confirm message to node %v",nd.id)
                 _,err = client.Confirm(ctx,commit)
             }else{
                 //cancel
+                log.Infof("sending cancel message to node %v",nd.id)
                 _,err = client.Cancel(ctx,commit)
             }
             cancel()
