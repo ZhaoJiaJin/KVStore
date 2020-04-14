@@ -46,13 +46,7 @@ type LogStore struct{
 
 func NewDBLogStore(db DB, dir string)(l *LogStore,err error){
     l = &LogStore{}
-    if _, err := os.Stat("dir"); os.IsNotExist(err) {
-	    // dir does not exist
-        err := os.Mkdir(dir,0755)
-        if err != nil{
-            return l,err
-        }
-    }
+    os.Mkdir(dir,0755)
     l.db = db
     l.cpF = filepath.Join(dir,"checkpoint")
     l.commitsF = filepath.Join(dir, "wal")

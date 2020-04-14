@@ -212,6 +212,7 @@ func (s *Server)Propose(data []byte)(err error){
         //leader
         log.Infof("node %v is the leader, process the commit",s.id)
         s.applylock.Lock()
+        defer s.applylock.Unlock()
         //Get last log id and term from logging module
         lastterm, lastid := s.dblog.GetLastCommit()
         id := lastid + 1
@@ -258,7 +259,9 @@ func (s *Server)Propose(data []byte)(err error){
             }
             cancel()
         }
-        s.applylock.Unlock()
+        if success != len(s.nodes){
+            return errors.New("some node is unreachable, this commit is discarded")
+        }
         // nodes should compare its last term and log id before commit
         return nil
     }
