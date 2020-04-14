@@ -10,6 +10,7 @@ service Commpb {
     rpc GetCheckPoint(Msg) returns (CP) {}
     rpc Prepare(Commit) returns (Msg) {}
     rpc Confirm(Commit) returns (Msg) {}
+    rpc Cancel(Commit) returns (Msg) {}
     rpc SendToLeader(Commit) returns (Msg) {}
 }
 
@@ -51,4 +52,5 @@ message Commit{
     int64 id = 3;
     int64 last_term = 4;
     int64 last_id = 5;
-    }
+    int64 src_id = 6;
+}

@@ -94,7 +94,7 @@ func (s *Server) sendHB(){
                     id = id
                     //log.Errorf("fail to send heartbeat to %v %v %v",id,nd.addr,err)
                 }else{
-                    s.changeTerm(int(rsp.Term))
+                    s.changeTerm(rsp.Term)
                 }
             }
             s.nodelock.RUnlock()

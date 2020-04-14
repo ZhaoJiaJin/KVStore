@@ -11,7 +11,7 @@ import(
 // AskForVote implements CommpbServer interface, process vote request
 func (s *Server) AskForVote(ctx context.Context,req *pb.VoteReq) (res *pb.VoteRsp,err error){
     res = &pb.VoteRsp{}
-    voteYes,_ := s.vote(int(req.Term))
+    voteYes,_ := s.vote(req.Term)
     if voteYes{
        res.Vtres = pb.VoteRsp_YES
     }else{
@@ -24,8 +24,8 @@ func (s *Server) AskForVote(ctx context.Context,req *pb.VoteReq) (res *pb.VoteRs
 func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error){
     //log.Infof("node %v receive heartbeat",s.id)
     s.lastack = true
-    s.leaderID = int(req.Id)
-    s.changeTerm(int(req.Term))
+    s.leaderID = req.Id
+    s.changeTerm(req.Term)
     if s.role == Candidate{
         s.role = Follower
     }
@@ -52,16 +52,28 @@ func (s *Server) GetCheckPoint(ctx context.Context, req *pb.Msg)(*pb.CP, error){
 
 // Prepare handle a prepare commit message from leader
 func (s *Server) Prepare(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+    res := &pb.Msg{}
+    return res,s.prepare(req)
 }
 
 
 // Confirm handle a confirm commit message from leader
 func (s *Server) Confirm(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+    res := &pb.Msg{}
+    return res,s.confirm(req)
+}
+
+// Cancel handle a cancel commit message from leader
+func (s *Server) Cancel(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+    res := &pb.Msg{}
+    return res,s.cancel(req)
 }
 
 // SendToLeader handle a commit send from a follower to leader
 func (s *Server) SendToLeader(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
-
+    res := &pb.Msg{}
+    err := s.Propose(req.Data)
+    return res,err
 }
 
 // serve start grpc server

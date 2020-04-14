@@ -4,8 +4,10 @@ import(
     "sync"
     "time"
     "google.golang.org/grpc"
+    "context"
     "errors"
     log "github.com/labstack/gommon/log"
+    pb "kvstore/proto/commpb"
     "kvstore/logging"
 )
 
@@ -30,37 +32,38 @@ const(
 
 // Server Core data structure for a node
 type Server struct{
-    id int
-    term int
+    id int64
+    term int64
     voted bool
     termLock sync.RWMutex
     role ROLE
     addr string
-    leaderID int
+    leaderID int64
     hbtimeout int64
     lastack bool
-    nodes map[int]*Node //id:string
+    nodes map[int64]*Node //id:string
     nodelock sync.RWMutex
     errorC chan error
     dblog *logging.LogStore
     applylock sync.Mutex
+    curcommit *pb.Commit
 }
 
 // Node represent a node
 type Node struct{
-    id int
+    id int64
     addr string
     conn *grpc.ClientConn
 }
 
 //NewServer return a server
-func NewServer(nid int, addrs []string, db logging.DB, datadir string)*Server{
-    if nid > len(addrs){
+func NewServer(nid int64, addrs []string, db logging.DB, datadir string)*Server{
+    if nid > int64(len(addrs)){
         log.Fatalf("id should be smaller than cluster addresses")
     }
     dblog,err := logging.NewDBLogStore(db, datadir)
     if err != nil{
-        log.Fatal("NewServer, create NewDBLogStore failed:%v",err)
+        log.Fatalf("NewServer, create NewDBLogStore failed:%v",err)
     }
     s := &Server{
         lastack:false,
@@ -69,12 +72,12 @@ func NewServer(nid int, addrs []string, db logging.DB, datadir string)*Server{
         voted:false,
         addr:addrs[nid],
         role:Follower,
-        nodes:make(map[int]*Node),
+        nodes:make(map[int64]*Node),
         errorC: make(chan error,1),
         dblog:dblog,
     }
     for i,ad := range addrs{
-        s.nodes[i] = &Node{id:i,addr:ad}
+        s.nodes[int64(i)] = &Node{id:int64(i),addr:ad}
     }
     s.serve(s.addr)
     s.initConn()
@@ -99,7 +102,7 @@ func (s *Server)initConn(){
 }
 
 
-func (s *Server) changeTerm(newterm int){
+func (s *Server) changeTerm(newterm int64){
     s.termLock.Lock()
     defer s.termLock.Unlock()
     if newterm > s.term{
@@ -111,13 +114,13 @@ func (s *Server) changeTerm(newterm int){
     }
 }
 
-func (s *Server)getTerm()int{
+func (s *Server)getTerm()int64{
     s.termLock.RLock()
     defer s.termLock.RUnlock()
     return s.term
 }
 
-func (s *Server)vote(newterm int)(res bool,oldterm int){
+func (s *Server)vote(newterm int64)(res bool,oldterm int64){
     s.termLock.Lock()
     defer s.termLock.Unlock()
 
@@ -150,7 +153,7 @@ func (s *Server)incTerm(){
 
 
 // AddNode add new node to cluster
-func (s *Server) AddNode(id int, addr string)(error){
+func (s *Server) AddNode(id int64, addr string)(error){
     s.nodelock.Lock()
     defer s.nodelock.Unlock()
 
@@ -172,7 +175,7 @@ func (s *Server) AddNode(id int, addr string)(error){
 }
 
 // RmNode remove node from cluster
-func (s *Server) RmNode(id int)(error){
+func (s *Server) RmNode(id int64)(error){
     s.nodelock.Lock()
     defer s.nodelock.Unlock()
     n,ok := s.nodes[id]
@@ -185,26 +188,123 @@ func (s *Server) RmNode(id int)(error){
 }
 
 func (s *Server)getCheckPoint()([]byte, error){
-
+    return s.dblog.Marshal()
 }
 
-
-func (s *Server)recoverFromCheckPoint(data []byte, orinodeID int)(error){
-
-}
 
 //Propose propose a commit to the cluster
-func (s *Server)Propose(data []byte)(error){
+//TODO: propose node add/del
+func (s *Server)Propose(data []byte)(err error){
     if s.role != Leader{
         //not leader, need to propose to leader
+        commit := &pb.Commit{
+            Data:data,
+        }
+        client := pb.NewCommpbClient(s.nodes[s.leaderID].conn)
+        ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+        defer cancel()
+        _,err = client.SendToLeader(ctx,commit)
+        if err != nil{
+            return err
+        }
     }else{
         //leader
         s.applylock.Lock()
         //Get last log id and term from logging module
-        s.applylock.Unlock()
+        lastterm, lastid := s.dblog.GetLastCommit()
+        id := lastid + 1
+        if s.term != lastterm{
+            id = 0
+        }
+        commit := &pb.Commit{
+            Data:data,
+            Term:s.term,
+            Id:id,
+            LastTerm:lastterm,
+            LastId: lastid,
+            SrcId: s.id,
+        }
         //Send commit to all the nodes
+        //prepare the commit
+        success := 0
+        for _,nd := range s.nodes{
+            client := pb.NewCommpbClient(nd.conn)
+            ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+            _,err = client.Prepare(ctx,commit)
+            if err != nil{
+                cancel()
+                break
+            }
+            success ++
+            cancel()
+        }
+
+        for _,nd := range s.nodes{
+            client := pb.NewCommpbClient(nd.conn)
+            ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+            if success == len(s.nodes){
+                //confirm   
+                _,err = client.Confirm(ctx,commit)
+            }else{
+                //cancel
+                _,err = client.Cancel(ctx,commit)
+            }
+            cancel()
+        }
+        s.applylock.Unlock()
         // nodes should compare its last term and log id before commit
+        return nil
     }
+    return nil
+}
 
+func (s *Server)prepare(commit *pb.Commit)(error){
+    lastterm, lastid := s.dblog.GetLastCommit()
+    if lastterm != commit.LastTerm || lastid != commit.LastId{
+        // get checkpoint from leader
+        req := &pb.Msg{}
 
+        client := pb.NewCommpbClient(s.nodes[commit.SrcId].conn)
+        ctx,cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+        defer cancel()
+        rsp,err := client.GetCheckPoint(ctx,req)
+        if err != nil{
+            return err
+        }
+        if rsp.Status != 0{
+            log.Errorf("get checkpoint from master failed")
+            return errors.New("get checkpoint failed")
+        }
+        // recover from checkpoint
+        err = s.dblog.Unmarshal(rsp.Data)
+        if err != nil{
+            log.Errorf("prepare recover Unmarshal failed:%v",err)
+            return err
+        }
+        log.Info("data recovered from leader node!!!")
+    }
+    s.curcommit = commit
+    return nil
+}
+func (s *Server)confirm(commit *pb.Commit)(error){
+    if s.curcommit == nil{
+        log.Warnf("confirm:nothing to confirm")
+        return nil
+    }
+    if commit.Term != s.curcommit.Term || commit.Id != s.curcommit.Id{
+        log.Errorf("prepared and confirmed commits do not match!")
+        return errors.New("Prepared and confirmed commits do not match!")
+    }
+    //apply the commit
+    err := s.dblog.Apply(s.curcommit.Term, s.curcommit.Id,s.curcommit.Data)
+    if err != nil{
+        log.Errorf("confirm -- commit failed:%v",err)
+        return err
+    }
+    s.curcommit = nil
+    return nil
+}
+func (s *Server)cancel(commit *pb.Commit)(error){
+    s.curcommit = nil
+    return nil
 }

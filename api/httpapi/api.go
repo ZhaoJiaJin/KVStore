@@ -5,11 +5,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+    "kvstore/db"
+    "kvstore/comm"
 )
 
 // DisableWriteViaHTTPGet determines whether create, update, and delete
 // requests are acceptable through an http GET request.
 var DisableWriteViaHTTPGet bool
+
+var(
+    kvdb *db.KVStore 
+    commsrv *comm.Server
+)
 
 func init() {
 	flag.BoolVar(&DisableWriteViaHTTPGet,
@@ -17,7 +24,9 @@ func init() {
 }
 
 //Serve starts HTTP server.
-func Serve(port int) {
+func Serve(port int,dbins *db.KVStore,srv *comm.Server) {
+    kvdb = dbins
+    commsrv = srv
 	http.HandleFunc("/", handleRequest)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d",port), nil))
 }

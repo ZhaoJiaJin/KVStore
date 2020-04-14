@@ -115,10 +115,10 @@ func (l *LogStore) recoverdb()(error){
 
 
 
-func (l *LogStore)Apply(term, id int, data []byte)(error){
+func (l *LogStore)Apply(term, id int64, data []byte)(error){
     l.commits[l.idx].Used = true
-    l.commits[l.idx].Term = int64(term)
-    l.commits[l.idx].ID = int64(id)
+    l.commits[l.idx].Term = term
+    l.commits[l.idx].ID = id
     l.commits[l.idx].DataLen = int64(copy(l.commits[l.idx].Data[:], data))
     l.idx ++
 
