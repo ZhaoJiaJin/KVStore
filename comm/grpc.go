@@ -72,7 +72,7 @@ func (s *Server) Cancel(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
 // SendToLeader handle a commit send from a follower to leader
 func (s *Server) SendToLeader(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
     res := &pb.Msg{}
-    err := s.Propose(req.Data)
+    err := s.Propose(req.Data,req.Type)
     return res,err
 }
 

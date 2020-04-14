@@ -24,6 +24,13 @@ const(
 )
 
 const(
+    NORMAL int64 = iota
+    EMPTY
+    ADDNODE
+    DELNODE
+)
+
+const(
     // HBLOWER heartbeat timeout lower bound
     HBLOWER = 200
     // HBUPPER heartbeat timeout upper bound
@@ -192,14 +199,38 @@ func (s *Server)getCheckPoint()([]byte, error){
 }
 
 
+//ProposeEmpty propose a empty commit to sync data with leader node when a node restarts
+// this functon should be invoked whenever these is a leader change
+func (s *Server)ProposeEmpty()(err error){
+    if s.role != Leader{
+        log.Infof("node %v is not the leader, pass the commit the leader node %v",s.id,s.leaderID)
+        //not leader, need to propose to leader
+        commit := &pb.Commit{
+            Type:EMPTY,
+        }
+        client := pb.NewCommpbClient(s.nodes[s.leaderID].conn)
+        ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+        defer cancel()
+        _,err = client.SendToLeader(ctx,commit)
+        if err != nil{
+            return err
+        }
+    }
+    return nil
+}
+
+
+
+
 //Propose propose a commit to the cluster
 //TODO: propose node add/del
-func (s *Server)Propose(data []byte)(err error){
+func (s *Server)Propose(data []byte, ctype int64)(err error){
     if s.role != Leader{
         log.Infof("node %v is not the leader, pass the commit the leader node %v",s.id,s.leaderID)
         //not leader, need to propose to leader
         commit := &pb.Commit{
             Data:data,
+            Type:ctype,
         }
         client := pb.NewCommpbClient(s.nodes[s.leaderID].conn)
         ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
@@ -226,6 +257,7 @@ func (s *Server)Propose(data []byte)(err error){
             LastTerm:lastterm,
             LastId: lastid,
             SrcId: s.id,
+            Type:ctype,
         }
         //Send commit to all the nodes
         //prepare the commit
@@ -306,10 +338,12 @@ func (s *Server)confirm(commit *pb.Commit)(error){
         return errors.New("Prepared and confirmed commits do not match!")
     }
     //apply the commit
-    err := s.dblog.Apply(s.curcommit.Term, s.curcommit.Id,s.curcommit.Data)
-    if err != nil{
-        log.Errorf("confirm -- commit failed:%v",err)
-        return err
+    if commit.Type == NORMAL{
+        err := s.dblog.Apply(s.curcommit.Term, s.curcommit.Id,s.curcommit.Data)
+        if err != nil{
+            log.Errorf("confirm -- commit failed:%v",err)
+            return err
+        }
     }
     s.curcommit = nil
     return nil

@@ -53,4 +53,5 @@ message Commit{
     int64 last_term = 4;
     int64 last_id = 5;
     int64 src_id = 6;
+    int64 type = 7;
 }

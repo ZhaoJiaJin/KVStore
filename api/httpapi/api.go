@@ -84,7 +84,7 @@ func handleCreateEntryRequest(w http.ResponseWriter, req *http.Request) {
         http.Error(w, err.Error(),http.StatusInternalServerError)
         return
     }
-    err = commsrv.Propose(datab)
+    err = commsrv.Propose(datab,comm.NORMAL)
     if err != nil{
         http.Error(w, err.Error(),http.StatusInternalServerError)
         return
@@ -123,7 +123,7 @@ func handleUpdateEntryRequest(w http.ResponseWriter, req *http.Request) {
         http.Error(w, err.Error(),http.StatusInternalServerError)
         return
     }
-    err = commsrv.Propose(datab)
+    err = commsrv.Propose(datab,comm.NORMAL)
     if err != nil{
         http.Error(w, err.Error(),http.StatusInternalServerError)
         return
@@ -150,7 +150,7 @@ func handleDeleteEntryRequest(w http.ResponseWriter, req *http.Request) {
         http.Error(w, err.Error(),http.StatusInternalServerError)
         return
     }
-    err = commsrv.Propose(datab)
+    err = commsrv.Propose(datab,comm.NORMAL)
     if err != nil{
         http.Error(w, err.Error(),http.StatusInternalServerError)
         return
