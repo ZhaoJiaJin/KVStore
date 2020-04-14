@@ -15,3 +15,5 @@ go build -o kvstore cmd/main.go
 goreman start
 ```
 This will start three processes using configurations in Procfile
+
+# [Postman API](https://documenter.getpostman.com/view/10246941/Szf26B31?version=latest)
