@@ -7,6 +7,7 @@ import (
 	"net/http"
     "kvstore/db"
     "kvstore/comm"
+    "encoding/json"
 )
 
 // DisableWriteViaHTTPGet determines whether create, update, and delete
@@ -73,7 +74,21 @@ func handleCreateEntryRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: create entry in DB
+    ope := db.Operation{
+        Type:db.SET,
+        Key:key,
+        Value:value,
+    }
+    datab,err := json.Marshal(ope)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+    err = commsrv.Propose(datab)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
 	fmt.Fprintf(w, "created\n%s: %s\n", key, value)
 }
 
@@ -85,8 +100,7 @@ func handleReadEntryRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: look up entry in DB
-	value := "🤷"
+    value := kvdb.Get(key)
 	fmt.Fprintf(w, "read\n%s: %s\n", key, value)
 }
 
@@ -99,7 +113,22 @@ func handleUpdateEntryRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: update entry in DB
+    ope := db.Operation{
+        Type:db.SET,
+        Key:key,
+        Value:value,
+    }
+    datab,err := json.Marshal(ope)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+    err = commsrv.Propose(datab)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+
 	fmt.Fprintf(w, "updated\n%s: %s\n", key, value)
 }
 
@@ -112,8 +141,22 @@ func handleDeleteEntryRequest(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// TODO: delete entry in DB
-	value := "🤷"
-	fmt.Fprintf(w, "deleted\n%s: %s\n", key, value)
+     ope := db.Operation{
+        Type:db.DEL,
+        Key:key,
+    }
+    datab,err := json.Marshal(ope)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+    err = commsrv.Propose(datab)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+
+	fmt.Fprintf(w, "deleted %s\n", key)
 }
 
 func handleAddNodeRequest(w http.ResponseWriter, req *http.Request) {
