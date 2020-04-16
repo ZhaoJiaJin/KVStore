@@ -60,7 +60,11 @@ func handleRequest(w http.ResponseWriter, req *http.Request) {
 			handleAddNodeRequest(w, req)
 		} else if req.URL.Path == "/nodes/remove" {
 			handleRemoveNodeRequest(w, req)
-		} else {
+		} else if req.URL.Path == "/comm/disable"{
+            handleDisableComm(w,req)
+        }else if req.URL.Path == "/comm/enable"{
+            handleEnableComm(w,req)
+        }else{
 			http.Error(w, "Not found", 404)
 		}
 	default:
@@ -232,4 +236,14 @@ func handleRemoveNodeRequest(w http.ResponseWriter, req *http.Request) {
     }
 
 	fmt.Fprintf(w, "removed node: %v", id)
+}
+
+func handleDisableComm(w http.ResponseWriter, req *http.Request) {
+    commsrv.DisableGRPC()
+	fmt.Fprint(w, "ok")
+}
+
+func handleEnableComm(w http.ResponseWriter, req *http.Request) {
+    commsrv.EnableGRPC()
+	fmt.Fprint(w, "ok")
 }

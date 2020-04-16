@@ -5,11 +5,33 @@ import(
     "google.golang.org/grpc"
     log "github.com/labstack/gommon/log"
     "net"
+    "errors"
     "context"
 )
 
+var(
+    ErrCommDisabled = errors.New("Communication is disabled")
+)
+
+func (s *Server)DisableGRPC(){
+    s.grpcdisabled = true
+    s.nodelock.Lock()
+    defer s.nodelock.Unlock()
+    for _,nd := range s.nodes{
+        nd.conn.Close()
+    }
+}
+
+func (s *Server)EnableGRPC(){
+    s.grpcdisabled = false
+    s.rebuildConns()
+}
+
 // AskForVote implements CommpbServer interface, process vote request
 func (s *Server) AskForVote(ctx context.Context,req *pb.VoteReq) (res *pb.VoteRsp,err error){
+    if s.grpcdisabled{
+        return nil,ErrCommDisabled
+    }
     res = &pb.VoteRsp{}
     voteYes,_ := s.vote(req)
     if voteYes{
@@ -23,6 +45,9 @@ func (s *Server) AskForVote(ctx context.Context,req *pb.VoteReq) (res *pb.VoteRs
 // HeartBeat implements CommpbServer interface, process heartbeat request
 func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error){
     //log.Infof("node %v receive heartbeat",s.id)
+    if s.grpcdisabled{
+        return nil,ErrCommDisabled
+    }
     s.lastack = true
     s.changeLeaderID(req.Id)
     s.changeTerm(req.Term)
@@ -36,6 +61,9 @@ func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error)
 
 // GetCheckPoint handle GetCheckpoint requests from followers
 func (s *Server) GetCheckPoint(ctx context.Context, req *pb.Msg)(*pb.CP, error){
+    if s.grpcdisabled{
+        return nil,ErrCommDisabled
+    }
     data,err := s.getCheckPoint(req.Type)
     if err != nil{
         log.Warnf("GetCheckPoint %v",err)
@@ -52,6 +80,9 @@ func (s *Server) GetCheckPoint(ctx context.Context, req *pb.Msg)(*pb.CP, error){
 
 // Prepare handle a prepare commit message from leader
 func (s *Server) Prepare(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+    if s.grpcdisabled{
+        return nil,ErrCommDisabled
+    }
     res := &pb.Msg{}
     return res,s.prepare(req)
 }
@@ -59,18 +90,27 @@ func (s *Server) Prepare(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
 
 // Confirm handle a confirm commit message from leader
 func (s *Server) Confirm(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+    if s.grpcdisabled{
+        return nil,ErrCommDisabled
+    }
     res := &pb.Msg{}
     return res,s.confirm(req)
 }
 
 // Cancel handle a cancel commit message from leader
 func (s *Server) Cancel(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+    if s.grpcdisabled{
+        return nil,ErrCommDisabled
+    }
     res := &pb.Msg{}
     return res,s.cancel(req)
 }
 
 // SendToLeader handle a commit send from a follower to leader
 func (s *Server) SendToLeader(ctx context.Context, req *pb.Commit)(*pb.Msg, error){
+    if s.grpcdisabled{
+        return nil,ErrCommDisabled
+    }
     res := &pb.Msg{}
     err := s.Propose(req.Data,req.Type)
     return res,err

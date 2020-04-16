@@ -30,6 +30,7 @@ func (s *Server) checkhb(dura time.Duration){
         time.Sleep(dura)
         if s.role == Follower{
             if ! s.lastack{
+                s.leaderID = -1
                 s.applyLeader()
             }
             s.lastack = false

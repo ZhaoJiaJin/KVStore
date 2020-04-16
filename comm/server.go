@@ -59,6 +59,7 @@ type Server struct{
     dblog *logging.LogStore
     applylock sync.Mutex
     curcommit *pb.Commit
+    grpcdisabled bool
 }
 
 // Node represent a node
@@ -78,6 +79,7 @@ func NewServer(nid int64, addrs []string, db logging.DB, datadir string)*Server{
         log.Fatalf("NewServer, create NewDBLogStore failed:%v",err)
     }
     s := &Server{
+        grpcdisabled:false,
         lastack:true,
         id:nid,
         term:0,
@@ -422,6 +424,7 @@ func (s *Server)confirm(commit *pb.Commit)(error){
             return err
         }
     }else if commit.Type == CFGCHA{
+        log.Infof("prepare to commit a message %s",s.curcommit.Data)
         err := s.nodeslog.Apply(s.curcommit.Term, s.curcommit.Id,s.curcommit.Data)
         if err != nil{
             log.Errorf("confirm -- cfg change commit failed:%v",err)
