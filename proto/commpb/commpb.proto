@@ -40,6 +40,7 @@ message HBRsp{
 }
 
 message Msg{
+    int64 type = 1;
 }
 
 message CP {
@@ -56,4 +57,6 @@ message Commit{
     int64 last_id = 5;
     int64 src_id = 6;
     int64 type = 7;
+    int64 last_mem_term = 8;
+    int64 last_mem_id = 9;
 }

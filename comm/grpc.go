@@ -36,7 +36,7 @@ func (s *Server) HeartBeat(ctx context.Context,req *pb.HBReq) (*pb.HBRsp, error)
 
 // GetCheckPoint handle GetCheckpoint requests from followers
 func (s *Server) GetCheckPoint(ctx context.Context, req *pb.Msg)(*pb.CP, error){
-    data,err := s.getCheckPoint()
+    data,err := s.getCheckPoint(req.Type)
     if err != nil{
         log.Warnf("GetCheckPoint %v",err)
         return &pb.CP{

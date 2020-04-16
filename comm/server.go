@@ -2,6 +2,7 @@ package comm
 
 import(
     "sync"
+    "encoding/json"
     "time"
     "google.golang.org/grpc"
     "context"
@@ -9,6 +10,7 @@ import(
     log "github.com/labstack/gommon/log"
     pb "kvstore/proto/commpb"
     "kvstore/logging"
+    "kvstore/memdb"
     "path/filepath"
 )
 
@@ -27,8 +29,7 @@ const(
 const(
     NORMAL int64 = iota
     EMPTY
-    ADDNODE
-    DELNODE
+    CFGCHA
 )
 
 const(
@@ -50,7 +51,10 @@ type Server struct{
     hbtimeout int64
     lastack bool
     nodes map[int64]*Node //id:string
-    nodelock sync.RWMutex
+    nodesdb *memdb.MemStore
+    nodeslog *logging.LogStore
+    nodelock sync.Mutex
+    //nodelock sync.RWMutex
     errorC chan error
     dblog *logging.LogStore
     applylock sync.Mutex
@@ -85,30 +89,63 @@ func NewServer(nid int64, addrs []string, db logging.DB, datadir string)*Server{
         dblog:dblog,
         leaderID:-1,
     }
-    for i,ad := range addrs{
-        s.nodes[int64(i)] = &Node{id:int64(i),addr:ad}
-    }
+
+    s.nodesdb = memdb.New()
+    s.nodeslog,err = logging.NewDBLogStore(s.nodesdb, filepath.Join(datadir,"member"))
+    s.initmembers(addrs)
+    s.rebuildConns()
     s.serve(s.addr)
-    s.initConn()
-    //time.Sleep(time.Second * 1)
+    //s.initConn()
     s.startHBCheck()
     go s.sendHB()
     return s
 }
 
-func (s *Server)initConn(){
-    var err error
-    var opts []grpc.DialOption
-    opts = append(opts, grpc.WithInsecure())
-    s.nodelock.RLock()
-    defer s.nodelock.RUnlock()
-    for _,nd := range s.nodes{
-        nd.conn,err = grpc.Dial(nd.addr,opts...)
+
+func (s *Server)initmembers(addrs []string){
+    _,lastid := s.nodeslog.GetLastCommit()
+    for i,ad := range addrs{
+        lastid ++
+        //s.nodes[int64(i)] = &Node{id:int64(i),addr:ad}
+        ope := memdb.Operation{
+            Type:memdb.ADD,
+            Key:int64(i),
+            Value:ad,
+        }
+        opeb,_ := json.Marshal(ope)
+        err := s.nodeslog.Apply(s.term, lastid,opeb)
         if err != nil{
-            log.Fatalf("grpc dial failed:%v",err)
+            panic(err)
         }
     }
 }
+func (s *Server)rebuildConns(){
+    s.nodelock.Lock()
+    defer s.nodelock.Unlock()
+    var opts []grpc.DialOption
+    opts = append(opts, grpc.WithInsecure())
+    //TODO: close old connections
+    s.nodes = make(map[int64]*Node)
+    s.nodesdb.Range(func(key int64,value string)bool{
+        conn,err := grpc.Dial(value,opts...)
+        if err != nil{
+            log.Errorf("grpc dial failed:%v",err)
+        }
+        s.nodes[key] = &Node{
+            id:key,
+            addr: value,
+            conn:conn,
+        }
+        return true
+    })
+}
+
+/*func (s *Server)initConn(){
+    s.nodelock.RLock()
+    defer s.nodelock.RUnlock()
+    for _,nd := range s.nodes{
+    }
+}*/
 
 
 func (s *Server) changeTerm(newterm int64){
@@ -170,44 +207,12 @@ func (s *Server)incTerm(){
     s.voted = true
 }
 
-
-// AddNode add new node to cluster
-func (s *Server) AddNode(id int64, addr string)(error){
-    s.nodelock.Lock()
-    defer s.nodelock.Unlock()
-
-    if _,ok := s.nodes[id];ok{
-        return errors.New("node id already exists, please delete the old node before adding it")
+func (s *Server)getCheckPoint(tp int64)([]byte, error){
+    if tp == NORMAL{
+        return s.dblog.Marshal()
+    }else{
+        return s.nodeslog.Marshal()
     }
-    var opts []grpc.DialOption
-    opts = append(opts, grpc.WithInsecure())
-    conn,err := grpc.Dial(addr,opts...)
-    if err != nil{
-        return err
-    }
-    s.nodes[id] = &Node{
-        id:id,
-        addr:addr,
-        conn:conn,
-    }
-    return nil
-}
-
-// RmNode remove node from cluster
-func (s *Server) RmNode(id int64)(error){
-    s.nodelock.Lock()
-    defer s.nodelock.Unlock()
-    n,ok := s.nodes[id]
-    if !ok{
-        return errors.New("this node does not exist")
-    }
-    n.conn.Close()
-    delete(s.nodes,id)
-    return nil
-}
-
-func (s *Server)getCheckPoint()([]byte, error){
-    return s.dblog.Marshal()
 }
 
 
@@ -258,6 +263,7 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
         defer s.applylock.Unlock()
         //Get last log id and term from logging module
         lastterm, lastid := s.dblog.GetLastCommit()
+        lastmemterm, lastmemid := s.nodeslog.GetLastCommit()
         id := lastid + 1
         if s.term != lastterm{
             id = 0
@@ -270,6 +276,8 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
             LastId: lastid,
             SrcId: s.id,
             Type:ctype,
+            LastMemTerm: lastmemterm,
+            LastMemId: lastmemid,
         }
         //Send commit to all the nodes
         //prepare the commit
@@ -323,7 +331,9 @@ func (s *Server)prepare(commit *pb.Commit)(error){
     lastterm, lastid := s.dblog.GetLastCommit()
     if lastterm != commit.LastTerm || lastid != commit.LastId{
         // get checkpoint from leader
-        req := &pb.Msg{}
+        req := &pb.Msg{
+            Type:commit.Type,
+        }
 
         client := pb.NewCommpbClient(s.nodes[commit.SrcId].conn)
         ctx,cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -344,6 +354,36 @@ func (s *Server)prepare(commit *pb.Commit)(error){
         }
         log.Info("data recovered from leader node!!!")
     }
+
+    lastmemterm, lastmemid := s.nodeslog.GetLastCommit()
+    if lastmemterm != commit.LastMemTerm || lastmemid != commit.LastMemId{
+        // get checkpoint from leader
+        //TODO
+        req := &pb.Msg{
+            Type:commit.Type,
+        }
+
+        client := pb.NewCommpbClient(s.nodes[commit.SrcId].conn)
+        ctx,cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+        defer cancel()
+        rsp,err := client.GetCheckPoint(ctx,req)
+        if err != nil{
+            return err
+        }
+        if rsp.Status != 0{
+            log.Errorf("get checkpoint from master failed")
+            return errors.New("get checkpoint failed")
+        }
+        // recover from checkpoint
+        err = s.nodeslog.Unmarshal(rsp.Data)
+        if err != nil{
+            log.Errorf("prepare recover Unmarshal failed:%v",err)
+            return err
+        }
+        s.rebuildConns()
+        log.Info("data recovered from leader node!!!")
+    }
+
     s.curcommit = commit
     return nil
 }
@@ -360,9 +400,16 @@ func (s *Server)confirm(commit *pb.Commit)(error){
     if commit.Type == NORMAL{
         err := s.dblog.Apply(s.curcommit.Term, s.curcommit.Id,s.curcommit.Data)
         if err != nil{
-            log.Errorf("confirm -- commit failed:%v",err)
+            log.Errorf("confirm -- normal commit failed:%v",err)
             return err
         }
+    }else if commit.Type == CFGCHA{
+        err := s.nodeslog.Apply(s.curcommit.Term, s.curcommit.Id,s.curcommit.Data)
+        if err != nil{
+            log.Errorf("confirm -- cfg change commit failed:%v",err)
+            return err
+        }
+        s.rebuildConns()
     }
     s.curcommit = nil
     return nil

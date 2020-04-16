@@ -3,9 +3,11 @@ package httpapi
 import (
 	"flag"
 	"fmt"
+    "strconv"
 	"log"
 	"net/http"
     "kvstore/db"
+    "kvstore/memdb"
     "kvstore/comm"
     "encoding/json"
 )
@@ -140,7 +142,6 @@ func handleDeleteEntryRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: delete entry in DB
      ope := db.Operation{
         Type:db.DEL,
         Key:key,
@@ -161,24 +162,68 @@ func handleDeleteEntryRequest(w http.ResponseWriter, req *http.Request) {
 
 func handleAddNodeRequest(w http.ResponseWriter, req *http.Request) {
 	q := req.URL.Query()
-	node := q.Get("node")
-	if node == "" {
-		http.Error(w, "node missing in request", 400)
+	id := q.Get("id")
+	if id == "" {
+		http.Error(w, "id missing in request", 400)
 		return
 	}
+    addr := q.Get("addr")
+	if addr == "" {
+		http.Error(w, "addr missing in request", 400)
+		return
+	}
+    idint, err := strconv.ParseInt(id,10,64)
+    if err != nil{
+		http.Error(w, "wrong id type in request", 400)
+		return
+    }
 
-	// TODO: add node as new member
-	fmt.Fprintf(w, "added node: %s", node)
+    ope := memdb.Operation{
+        Type:memdb.ADD,
+        Key:idint,
+        Value:addr,
+    }
+    datab,err := json.Marshal(ope)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+    err = commsrv.Propose(datab,comm.CFGCHA)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+
+	fmt.Fprintf(w, "added node: %v %v", id,addr)
 }
 
 func handleRemoveNodeRequest(w http.ResponseWriter, req *http.Request) {
 	q := req.URL.Query()
-	node := q.Get("node")
-	if node == "" {
-		http.Error(w, "node missing in request", 400)
+	id := q.Get("id")
+	if id == "" {
+		http.Error(w, "id missing in request", 400)
 		return
 	}
+    idint, err := strconv.ParseInt(id,10,64)
+    if err != nil{
+		http.Error(w, "wrong id type in request", 400)
+		return
+    }
 
-	// TODO: remove node from members
-	fmt.Fprintf(w, "removed node: %s", node)
+    ope := memdb.Operation{
+        Type:memdb.RM,
+        Key:idint,
+    }
+    datab,err := json.Marshal(ope)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+    err = commsrv.Propose(datab,comm.CFGCHA)
+    if err != nil{
+        http.Error(w, err.Error(),http.StatusInternalServerError)
+        return
+    }
+
+	fmt.Fprintf(w, "removed node: %v", id)
 }

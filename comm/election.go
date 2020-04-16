@@ -41,8 +41,8 @@ func (s *Server) applyLeader(){
     s.role = Candidate
     s.incTerm()
     log.Infof("node %v apply for leader at term %v",s.id, s.term)
-    s.nodelock.RLock()
-    defer s.nodelock.RUnlock()
+    s.nodelock.Lock()
+    defer s.nodelock.Unlock()
     nodesum := len(s.nodes)
     yesvotes := 1 // I give myself a yes vote
     for id, nd := range s.nodes{
@@ -88,7 +88,7 @@ func (s *Server) sendHB(){
         time.Sleep(HBINTV)
         //TODO: maybe should use different goroutine for different nodes.
         if s.role == Leader{
-            s.nodelock.RLock()
+            s.nodelock.Lock()
             //for id,nd := range s.nodes{
             for _,nd := range s.nodes{
                 if nd.id == s.id{
@@ -105,7 +105,7 @@ func (s *Server) sendHB(){
                     log.Errorf("fail to send heartbeat to %v %v %v",id,nd.addr,err)
                 }*/
             }
-            s.nodelock.RUnlock()
+            s.nodelock.Unlock()
         }
     }
 }
