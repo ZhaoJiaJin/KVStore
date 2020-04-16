@@ -332,7 +332,7 @@ func (s *Server)prepare(commit *pb.Commit)(error){
     if lastterm != commit.LastTerm || lastid != commit.LastId{
         // get checkpoint from leader
         req := &pb.Msg{
-            Type:commit.Type,
+            Type:NORMAL,
         }
 
         client := pb.NewCommpbClient(s.nodes[commit.SrcId].conn)
@@ -360,7 +360,7 @@ func (s *Server)prepare(commit *pb.Commit)(error){
         // get checkpoint from leader
         //TODO
         req := &pb.Msg{
-            Type:commit.Type,
+            Type:CFGCHA,
         }
 
         client := pb.NewCommpbClient(s.nodes[commit.SrcId].conn)
@@ -381,7 +381,7 @@ func (s *Server)prepare(commit *pb.Commit)(error){
             return err
         }
         s.rebuildConns()
-        log.Info("data recovered from leader node!!!")
+        log.Info("membership data recovered from leader node!!!")
     }
 
     s.curcommit = commit
