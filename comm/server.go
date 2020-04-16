@@ -158,7 +158,7 @@ func (s *Server) changeTerm(newterm int64){
         s.voted = false
         if s.role == Leader{
             s.role = Follower
-            log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
+            log.Infof("another node got bigger term,node %v stepdown from leader to follower",s.id)
         }
     }
 }
@@ -181,7 +181,7 @@ func (s *Server)vote(req *pb.VoteReq)(res bool,oldterm int64){
         if (req.LastLogTerm > lastterm) || (req.LastLogTerm == lastterm && req.LastLogId >= lastid){
             res = true
             s.voted = true
-            log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
+            //log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
         }else{
             res = false
         }
@@ -227,7 +227,9 @@ func (s *Server)ProposeEmpty()(err error){
         commit := &pb.Commit{
             Type:EMPTY,
         }
+        s.nodelock.Lock()
         client := pb.NewCommpbClient(s.nodes[s.leaderID].conn)
+        s.nodelock.Unlock()
         ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
         defer cancel()
         _,err = client.SendToLeader(ctx,commit)
@@ -253,7 +255,9 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
             Data:data,
             Type:ctype,
         }
+        s.nodelock.Lock()
         client := pb.NewCommpbClient(s.nodes[s.leaderID].conn)
+        s.nodelock.Unlock()
         ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
         defer cancel()
         _,err = client.SendToLeader(ctx,commit)

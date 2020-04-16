@@ -14,6 +14,7 @@ var(
 )
 
 func (s *Server)DisableGRPC(){
+    log.Warn("Disable All Communications !!!")
     s.grpcdisabled = true
     s.nodelock.Lock()
     defer s.nodelock.Unlock()
@@ -23,6 +24,7 @@ func (s *Server)DisableGRPC(){
 }
 
 func (s *Server)EnableGRPC(){
+    log.Warn("Enable All Communications !!!")
     s.grpcdisabled = false
     s.rebuildConns()
 }
