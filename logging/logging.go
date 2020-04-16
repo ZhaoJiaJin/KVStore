@@ -96,7 +96,16 @@ func (l *LogStore) recoverdb()(error){
             return err
         }
     }else{
-        log.Warnf("recover from checkpoint:%v",err)
+        cpdata,err = l.db.GetCheckPoint()
+        if err != nil{
+            log.Warnf("recoverdb :%v",err)
+            return err
+        }
+        err = ioutil.WriteFile(l.cpF,cpdata,0644)
+        if err != nil{
+            log.Warnf("recoverdb :%v",err)
+            return err
+        }
     }
     // replay all the commits
     //for i:=0; i < l.idx; i ++{
