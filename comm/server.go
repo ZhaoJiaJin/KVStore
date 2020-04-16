@@ -220,7 +220,7 @@ func (s *Server)getCheckPoint(tp int64)([]byte, error){
 // this functon should be invoked whenever these is a leader change
 func (s *Server)ProposeEmpty()(err error){
     if s.role != Leader{
-        log.Infof("node %v is not the leader, pass the commit the leader node %v",s.id,s.leaderID)
+        //log.Infof("node %v is not the leader, pass the commit the leader node %v",s.id,s.leaderID)
         //not leader, need to propose to leader
         commit := &pb.Commit{
             Type:EMPTY,
@@ -243,7 +243,9 @@ func (s *Server)ProposeEmpty()(err error){
 //TODO: propose node add/del
 func (s *Server)Propose(data []byte, ctype int64)(err error){
     if s.role != Leader{
-        log.Infof("node %v is not the leader, pass the commit the leader node %v",s.id,s.leaderID)
+        if ctype != EMPTY{
+            log.Infof("node %v is not the leader, pass the commit the leader node %v",s.id,s.leaderID)
+        }
         //not leader, need to propose to leader
         commit := &pb.Commit{
             Data:data,
@@ -258,7 +260,9 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
         }
     }else{
         //leader
-        log.Infof("node %v is the leader, process the commit",s.id)
+        if ctype != EMPTY{
+            log.Infof("node %v is the leader, process the commit",s.id)
+        }
         s.applylock.Lock()
         defer s.applylock.Unlock()
         //Get last log id and term from logging module
@@ -283,14 +287,20 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
         //prepare the commit
         successcnt := 0
         for _,nd := range s.nodes{
-            log.Infof("send the commit to node %v",nd.id)
+            if ctype != EMPTY{
+                log.Infof("send the commit to node %v",nd.id)
+            }
             client := pb.NewCommpbClient(nd.conn)
             ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
             _,err = client.Prepare(ctx,commit)
             if err != nil{
-                log.Infof("node %v is not ready to commit",nd.id)
+                if ctype != EMPTY{
+                    log.Infof("node %v is not ready to commit",nd.id)
+                }
             }else{
-                log.Infof("node %v is ready to commit",nd.id)
+                if ctype != EMPTY{
+                    log.Infof("node %v is ready to commit",nd.id)
+                }
                 successcnt ++
             }
             cancel()
@@ -299,20 +309,28 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
         success := false
         if successcnt > len(s.nodes)/2{
             success = true
-            log.Info("commit reaches majority nodes, will confirm the commit")
+            if ctype != EMPTY{
+                log.Info("commit reaches majority nodes, will confirm the commit")
+            }
         }else{
-            log.Info("commit did not reach majority nodes, will cancel the commit")
+            if ctype != EMPTY{
+                log.Info("commit did not reach majority nodes, will cancel the commit")
+            }
         }
         for _,nd := range s.nodes{
             client := pb.NewCommpbClient(nd.conn)
             ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
             if success{
                 //confirm   
-                log.Infof("sending confirm message to node %v",nd.id)
+                if ctype != EMPTY{
+                    log.Infof("sending confirm message to node %v",nd.id)
+                }
                 _,err = client.Confirm(ctx,commit)
             }else{
                 //cancel
-                log.Infof("sending cancel message to node %v",nd.id)
+                if ctype != EMPTY{
+                    log.Infof("sending cancel message to node %v",nd.id)
+                }
                 _,err = client.Cancel(ctx,commit)
             }
             cancel()
