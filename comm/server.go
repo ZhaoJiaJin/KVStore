@@ -309,7 +309,11 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
             cancel()
         }
         // nodes should compare its last term and log id before commit
-        return nil
+        if success{
+            return nil
+        }else{
+            return errors.New("fail to commit the request")
+        }
     }
     return nil
 }
