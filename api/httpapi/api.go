@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
     "strconv"
+    glog "github.com/labstack/gommon/log"
 	"log"
 	"net/http"
     "kvstore/db"
@@ -88,7 +89,8 @@ func handleCreateEntryRequest(w http.ResponseWriter, req *http.Request) {
     }
     err = commsrv.Propose(datab,comm.NORMAL)
     if err != nil{
-        http.Error(w, err.Error(),http.StatusInternalServerError)
+        glog.Errorf("Propose:%v",err)
+        http.Error(w, "fail to commit",http.StatusInternalServerError)
         return
     }
 	fmt.Fprintf(w, "created\n%s: %s\n", key, value)
@@ -127,7 +129,8 @@ func handleUpdateEntryRequest(w http.ResponseWriter, req *http.Request) {
     }
     err = commsrv.Propose(datab,comm.NORMAL)
     if err != nil{
-        http.Error(w, err.Error(),http.StatusInternalServerError)
+        glog.Errorf("Propose:%v",err)
+        http.Error(w, "fail to commit",http.StatusInternalServerError)
         return
     }
 
@@ -153,7 +156,8 @@ func handleDeleteEntryRequest(w http.ResponseWriter, req *http.Request) {
     }
     err = commsrv.Propose(datab,comm.NORMAL)
     if err != nil{
-        http.Error(w, err.Error(),http.StatusInternalServerError)
+        glog.Errorf("Propose:%v",err)
+        http.Error(w, "fail to commit",http.StatusInternalServerError)
         return
     }
 
@@ -190,7 +194,8 @@ func handleAddNodeRequest(w http.ResponseWriter, req *http.Request) {
     }
     err = commsrv.Propose(datab,comm.CFGCHA)
     if err != nil{
-        http.Error(w, err.Error(),http.StatusInternalServerError)
+        glog.Errorf("Propose:%v",err)
+        http.Error(w, "fail to commit",http.StatusInternalServerError)
         return
     }
 
@@ -221,7 +226,8 @@ func handleRemoveNodeRequest(w http.ResponseWriter, req *http.Request) {
     }
     err = commsrv.Propose(datab,comm.CFGCHA)
     if err != nil{
-        http.Error(w, err.Error(),http.StatusInternalServerError)
+        glog.Errorf("Propose:%v",err)
+        http.Error(w, "fail to commit",http.StatusInternalServerError)
         return
     }
 
