@@ -9,6 +9,7 @@ import(
     log "github.com/labstack/gommon/log"
     pb "kvstore/proto/commpb"
     "kvstore/logging"
+    "path/filepath"
 )
 
 //ROLE role of a node
@@ -68,7 +69,7 @@ func NewServer(nid int64, addrs []string, db logging.DB, datadir string)*Server{
     if nid > int64(len(addrs)){
         log.Fatalf("id should be smaller than cluster addresses")
     }
-    dblog,err := logging.NewDBLogStore(db, datadir)
+    dblog,err := logging.NewDBLogStore(db, filepath.Join(datadir,"db"))
     if err != nil{
         log.Fatalf("NewServer, create NewDBLogStore failed:%v",err)
     }
