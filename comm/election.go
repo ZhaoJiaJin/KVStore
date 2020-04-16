@@ -25,6 +25,7 @@ func (s *Server)startHBCheck(){
 }
 
 func (s *Server) checkhb(dura time.Duration){
+        time.Sleep(time.Second * 3)
     for{
         time.Sleep(dura)
         if s.role == Follower{
@@ -88,7 +89,8 @@ func (s *Server) sendHB(){
         //TODO: maybe should use different goroutine for different nodes.
         if s.role == Leader{
             s.nodelock.RLock()
-            for id,nd := range s.nodes{
+            //for id,nd := range s.nodes{
+            for _,nd := range s.nodes{
                 if nd.id == s.id{
                     continue//skip myself
                 }
@@ -96,12 +98,12 @@ func (s *Server) sendHB(){
                 ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
                 defer cancel()
                 rsp,err := client.HeartBeat(ctx,&pb.HBReq{Term:int64(s.getTerm()),Id:int64(s.id)})
-                if err != nil{
-                    id = id
-                    //log.Errorf("fail to send heartbeat to %v %v %v",id,nd.addr,err)
-                }else{
+                if err == nil{
+                    //id = id
                     s.changeTerm(rsp.Term)
-                }
+                }/*else{
+                    log.Errorf("fail to send heartbeat to %v %v %v",id,nd.addr,err)
+                }*/
             }
             s.nodelock.RUnlock()
         }

@@ -73,7 +73,7 @@ func NewServer(nid int64, addrs []string, db logging.DB, datadir string)*Server{
         log.Fatalf("NewServer, create NewDBLogStore failed:%v",err)
     }
     s := &Server{
-        lastack:false,
+        lastack:true,
         id:nid,
         term:0,
         voted:false,
@@ -89,7 +89,7 @@ func NewServer(nid int64, addrs []string, db logging.DB, datadir string)*Server{
     }
     s.serve(s.addr)
     s.initConn()
-    time.Sleep(time.Second * 1)
+    //time.Sleep(time.Second * 1)
     s.startHBCheck()
     go s.sendHB()
     return s
@@ -116,9 +116,10 @@ func (s *Server) changeTerm(newterm int64){
     if newterm > s.term{
         s.term = newterm
         s.voted = false
-        //if s.role == Leader{}
-        s.role = Follower
-        log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
+        if s.role == Leader{
+            s.role = Follower
+            log.Infof("node %v got bigger term, stepdown from leader to follower",s.id)
+        }
     }
 }
 
@@ -278,12 +279,11 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
             ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
             _,err = client.Prepare(ctx,commit)
             if err != nil{
-                log.Infof("node %v is not ready to commit, begin to cancel this commit",nd.id)
-                cancel()
-                break
+                log.Infof("node %v is not ready to commit",nd.id)
+            }else{
+                log.Infof("node %v is ready to commit",nd.id)
+                successcnt ++
             }
-            log.Infof("node %v is ready to commit",nd.id)
-            successcnt ++
             cancel()
         }
 
@@ -371,6 +371,8 @@ func (s *Server)changeLeaderID(newlid int64){
     if newlid != s.leaderID{
         s.leaderID = newlid
         err := s.ProposeEmpty()
-        log.Errorf("changeLeaderID:%v",err)
+        if err != nil{
+            log.Errorf("changeLeaderID:%v",err)
+        }
     }
 }
