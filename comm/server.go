@@ -228,7 +228,12 @@ func (s *Server)ProposeEmpty()(err error){
             Type:EMPTY,
         }
         s.nodelock.Lock()
-        client := pb.NewCommpbClient(s.nodes[s.leaderID].conn)
+        leadernode, ok := s.nodes[s.leaderID]
+        if !ok{
+            s.nodelock.Unlock()
+            return errors.New("no leader in the cluster")
+        }
+        client := pb.NewCommpbClient(leadernode.conn)
         s.nodelock.Unlock()
         ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
         defer cancel()
@@ -256,7 +261,12 @@ func (s *Server)Propose(data []byte, ctype int64)(err error){
             Type:ctype,
         }
         s.nodelock.Lock()
-        client := pb.NewCommpbClient(s.nodes[s.leaderID].conn)
+        leadernode, ok := s.nodes[s.leaderID]
+        if !ok{
+            s.nodelock.Unlock()
+            return errors.New("no leader in the cluster")
+        }
+        client := pb.NewCommpbClient(leadernode.conn)
         s.nodelock.Unlock()
         ctx,cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
         defer cancel()
