@@ -16,4 +16,11 @@ goreman start
 ```
 This will start three processes using configurations in Procfile
 
+
+5. Adding a new node to the cluster.
+Call addnode API, pass the node ID and address, and run ./start3.sh to start another node
+
+6. Removing a node
+Stop the node, and call removenode API.
+
 # [Postman API](https://documenter.getpostman.com/view/10246941/Szf26B31?version=latest)
